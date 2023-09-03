@@ -39,7 +39,10 @@
 
 -define(GREY_BORDER, "Images/GreyBorder.png").
 
--define(UPDATE_TIME, 1000).
+-define(LOSS_IMG, "Images/Loss.png").
+-define(LOSS_SIZE, 500).
+
+-define(UPDATE_TIME, 300).
 
 % -record(block, {block_id, row, column, xlocation = 50, ylocation = 50, size=60, status=active}).
 % -record(plate, {plateID, xlocation, ylocation=50, stepSize=10, plateWidth=300, plateHeight=15, rightGG, leftGG, player}).
@@ -67,20 +70,23 @@ start_monitor()->
 init([])->
     Wx = wx:new(),
     Frame = wxFrame:new(Wx, -1, "Main Game Frame", [{size, ?BOARD_FRAME_SIZE}]),
+    {_WXRef, _Num, _Type, []} = Frame,
+    wx_object:set_pid(Frame, self()),
     % MenuBar = wxMenuBar:new(),
     % wxFrame:setMenuBar(Frame, MenuBar),
-    Sizer = wxBoxSizer:new(?wxHORIZONTAL),
-    Panel = wxPanel:new(Frame),
+    % Sizer = wxBoxSizer:new(?wxHORIZONTAL),
+    Panel = wxPanel:new(Frame, [{size, {?BOARD_WIDTH, ?BOARD_HEIGHT}}]),
     wxFrame:connect(Panel, paint),
-    wxSizer:add(Sizer, Panel, [{proportion, 1}, {flag, ?wxEXPAND bor ?wxALL}]),
-    wxSizer:setSizeHints(Sizer, Frame),
+    % wxSizer:add(Sizer, Panel, [{proportion, 1}, {flag, ?wxEXPAND bor ?wxALL}]),
+    % wxSizer:setSizeHints(Sizer, Frame),
     wxFrame:show(Frame),
     sketcBall(Panel),
     sketchBorders(Panel),
     sketchBlocks(Panel),
     sketchPlates(Panel),
     erlang:send_after(?UPDATE_TIME, global:whereis_name(gameGUI), updateGUI),
-    {ok, {Panel,  Frame, 0}}.
+    State = {Panel, Frame, 0},
+    {ok, State}.
 terminate(_Reason, _State) ->
     ok.
 code_change(_OldVsn, State,  _Extra) ->
@@ -92,23 +98,27 @@ code_change(_OldVsn, State,  _Extra) ->
 handle_call(_Request, _From, State) ->
     Reply = ok,
     {reply, Reply, State}.
+handle_cast(freeze, {Panel,  _Frame,  _Counter})->
+    drawImage(Panel, ?LOSS_IMG, {trunc((?BOARD_WIDTH-?LOSS_SIZE)/2), trunc((?BOARD_HEIGHT-?LOSS_SIZE)/2)}, ?LOSS_SIZE),
+    {noreply, freeze};    
 handle_cast(stop, State)->
     {stop, normal, State};
 handle_cast(_Msg, State) ->
     {noreply, State}.
+%-----------------------------------------------------------------------------------------
 handle_info(updateGUI, {Panel,  Frame,  Counter})->
-        Panel1 = Panel = wxPanel:new(Frame),
-        sketcBall(Panel),
-        sketchBorders(Panel),
-        sketchBlocks(Panel),
-        sketchPlates(Panel),
-        wxFrame:connect(Panel1, paint),
-        wxPanel:destroy(Panel),
-        erlang:send_after(?UPDATE_TIME, global:whereis_name(gameGUI), updateGUI),
-        {ok, {Panel1, Frame, Counter+1}};
+    NewPanel = wxPanel:new(Frame, [{size, {?BOARD_WIDTH, ?BOARD_HEIGHT}}]),
+    wxPanel:destroy(Panel), 
+    wxFrame:connect(NewPanel, paint),
+    sketcBall(NewPanel), 
+    sketchBorders(NewPanel),
+    sketchBlocks(NewPanel),
+    sketchPlates(NewPanel),
+    % wxFrame:show(Frame),
+    erlang:send_after(?UPDATE_TIME, global:whereis_name(gameGUI), updateGUI),
+    {noreply, {NewPanel, Frame, Counter+1}};
 handle_info(_WXpart, State)->
-        erlang:send_after(?UPDATE_TIME, gameGUI, updateGUI),
-        {noreply, State}.
+    {noreply, State}.
 
 
 
@@ -160,8 +170,7 @@ sketchBlocks(Panel)->
             Status==active -> 
                 drawImage(Panel, ?BLUE_BLOCK, {round(Xlocation), round(Ylocation)}, Size);
             true->
-                io:format("Status {in sketchBlocks} is ~w~n", [Status]),
-                none
+                ok
         end
     end, 
     BlocksList),

@@ -1,7 +1,7 @@
--module(player_sup).
+-module(main_sup).
 -author("Ohad Elgazi").
 -behaviour(supervisor).
-
+%------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
 % export functions
 %------------------------------------------------------------------------------
@@ -11,10 +11,8 @@
 -export([init/1]).
 % export functions
 -export([]).
-
-
+%------------------------------------------------------------------------------
 -define(SERVER, ?MODULE).
-
 %------------------------------------------------------------------------------
 % import wx library
 -define(MAIN_NODE, 'main@LAPTOP-A8NM9S74').
@@ -36,23 +34,22 @@
 
 
 start_link()->
-    PlayerName = isAvailableName([player1, player2, player3, player4]),
-    supervisor:start_link({local, PlayerName}, ?MODULE, [PlayerName]),
-    global:register_name(PlayerName, self()).
+    supervisor:start_link({local, mainSuper}, ?MODULE, []).
 
 
-init([PlayerName]) ->
-    PlayerNum = getElemIndex(PlayerName, [player1, player2, player3, player4]),
+init([]) ->
     SupFlags = 
         #{strategy => one_for_one,
 		 intensity =>10000,
 		 period => 1,
          restart => permanent},
     ChildSpecs = [
-	#{id => ball,
-	    start => {ball, start_link, [[PlayerName, PlayerNum]]}}, 
-    #{id => plate,
-        start => {plate, start_link, [[maps:get(PlayerName, ?PLAYER_NUM)]]},
+	% #{id => mainChild,
+	%     start => {main, start, [[]]},
+    %     restart => permanent,
+    %     type=>worker}, 
+    #{id => gameGuiChild,
+        start => {gameGUI, start_link, []},
         restart => permanent,
         type=>worker}
     ],
@@ -63,21 +60,8 @@ init([PlayerName]) ->
 %    Functions
 %------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
-
+%.
+%.
+%.
 %------------------------------------------------------------------------------
 %------------------------------------------------------------------------------
-% is available name run on all Elements on list and check if they are available until find one and return it.
-isAvailableName([])->
-    no_name_availabel;
-isAvailableName([Elem|T])->
-    case global:whereis_name(Elem) of
-        undefined ->
-            Elem;
-        _Else->
-            isAvailableName(T)        
-    end.
-%------------------------------------------------------------------------------
-%------------------------------------------------------------------------------
-getElemIndex(Elem, List)->
-    Map = maps:from_list(lists:zip(List, lists:seq(1, length(List)))),
-    maps:get(Elem, Map).
