@@ -3,6 +3,7 @@
 Running instruction:  
 link to guideline video: [Link](https://www.loom.com/share/4c2ce631029a4e73b036102ba427cd90?sid=cbd670c2-0b6c-418f-bc2a-43214a6de7d0)  
 Summarized report: [Link](https://docs.google.com/document/d/1Rk0fexd1Q76Rg-UGt_GMKt1bgF1V5gjbHZdPpTChLRk/edit?usp=sharing)  
+Presentation: [Link](https://1drv.ms/p/s!Aikukqn3stxBrmkZL65vBthF6q_Y?e=plN3uE)  
 run on each node 'erl -name nodeName -setcookie chosenCookie'  
 On the main Node run all those files:   
   * main.erl  
